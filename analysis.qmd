@@ -13,30 +13,8 @@ library(primer.tutorials)
 library(tidymodels)
 library(broom)
 library(gt)
+library(marginaleffects)
 ```
-
-```{r}
-smokes |>
-  mutate(age_bin = cut(age, breaks = seq(20, 80, by = 5), include.lowest = TRUE)) |>
-  group_by(age_bin, sex) |>
-  summarize(share = mean(smoke == "Yes"), .groups = "drop") |>
-  ggplot(aes(x = as.numeric(age_bin) * 5 + 17.5, y = share, color = sex)) +
-  geom_point() +
-  geom_smooth(se = FALSE) +
-  scale_y_continuous(labels = scales::label_percent()) +
-  facet_wrap(~ sex) +
-  labs(
-    title = "Share of Ever-Smokers by Age and Sex",
-    subtitle = "Ever-smoker rates rise with age, especially among men",
-    x = "Age",
-    y = "Share of Ever-Smokers",
-    color = "Sex",
-    caption = "Source: 1,000-row NHANES 2009-2012 cut via primer.tutorials::smokes"
-  )
-```
-
-Smoking rates vary substantially across age and sex, making demographic targeting a critical tool for anti-smoking campaigns. Using a 1,000-adult sample drawn from the 2009–2012 NHANES waves, available in the smokes tibble of the primer.tutorials package, we estimate the difference in the probability of being an ever-smoker between a 30-year-old woman and a 70-year-old man. However, the 13–17 year gap between our 2009–2012 NHANES data and the 2026 target population means the relationship between age, sex, and smoking status may have shifted, particularly among younger cohorts who came of age during the rise of e-cigarettes, making our estimates potentially outdated. We model the probability of being an ever-smoker using logistic regression, treating smoke as a binary outcome that is a function of age and sex.
-
 
 ```{r}
 #| cache: true
@@ -44,13 +22,25 @@ fit_smokes <- logistic_reg(engine = "glm") |> fit(smoke ~ age + sex, data = smok
 ```
 
 ```{r}
-tidy(fit_smokes, conf.int = TRUE) |>
-  select(term, estimate, conf.low, conf.high) |>
-  mutate(across(c(estimate, conf.low, conf.high), \(x) round(x, 3))) |>
-  gt() |>
-  tab_header(title = "Estimates and 95% Confidence Intervals for Parameters",
-             subtitle = "Source: 1,000-row NHANES 2009-2012 cut via primer.tutorials::smokes")
+plot_predictions(extract_fit_engine(fit_smokes), condition = c("age", "sex"), draw = FALSE) |>
+  ggplot(aes(x = age, y = estimate, color = sex, fill = sex)) +
+  geom_line(linewidth = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, color = NA) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(
+    title = "Predicted Probability of Being an Ever-Smoker by Age and Sex",
+    subtitle = "Men are more likely to be ever-smokers at every age; both sexes show a modest rise with age",
+    x = "Age",
+    y = "Predicted Probability of Being an Ever-Smoker",
+    color = "Sex",
+    fill = "Sex",
+    caption = "Source: 1,000-row NHANES 2009-2012 cut via primer.tutorials::smokes"
+  )
 ```
+
+Smoking rates vary substantially across age and sex, making demographic targeting a critical tool for anti-smoking campaigns. Using a 1,000-adult sample drawn from the 2009–2012 NHANES waves, available in the smokes tibble of the primer.tutorials package, we estimate the difference in the probability of being an ever-smoker between a 30-year-old woman and a 70-year-old man. However, the 13–17 year gap between our 2009–2012 NHANES data and the 2026 target population means the relationship between age, sex, and smoking status may have shifted, particularly among younger cohorts who came of age during the rise of e-cigarettes, making our estimates potentially outdated. We model the probability of being an ever-smoker using logistic regression, treating smoke as a binary outcome that is a function of age and sex. We estimate that a 70-year-old man has about a 20 percentage point higher probability of being an ever-smoker than a 30-year-old woman, and that male adults overall are about 13 percentage points more likely to be ever-smokers than female adults of the same age (95% CI: 7–19 percentage points). Our estimate of a 20 percentage point difference between a 70-year-old man and a 30-year-old woman is likely imprecise for several reasons. First, the 1,000-row teaching cut drops the NHANES survey weights, so our sample may over- or under-represent key demographic groups, biasing both the level and the age slope. Second, the 13–17 year gap between our 2009–2012 data and 2026 means younger cohorts in our sample, who came of age before e-cigarettes became widespread, may have very different smoking histories than today's younger adults, meaning the age slope we estimate probably overstates how much smoking probability increases with age in the current population. Third, our model uses only age and sex; income, education, and geography are all strongly associated with smoking and their omission likely inflates the apparent effects of age and sex. A more defensible estimate would use the full NHANES survey weights, include additional covariates, and widen the confidence intervals to account for the time gap.
+
+
 
 
 
