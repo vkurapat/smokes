@@ -1,0 +1,35 @@
+---
+title: "Smokes"
+author: "Var Kurapati"
+format: html
+execute:
+  echo: false
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(primer.tutorials)
+```
+
+```{r}
+smokes |>
+  mutate(age_bin = cut(age, breaks = seq(20, 80, by = 5), include.lowest = TRUE)) |>
+  group_by(age_bin, sex) |>
+  summarize(share = mean(smoke == "Yes"), .groups = "drop") |>
+  ggplot(aes(x = as.numeric(age_bin) * 5 + 17.5, y = share, color = sex)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  facet_wrap(~ sex) +
+  labs(
+    title = "Share of Ever-Smokers by Age and Sex",
+    subtitle = "Ever-smoker rates rise with age, especially among men",
+    x = "Age",
+    y = "Share of Ever-Smokers",
+    color = "Sex",
+    caption = "Source: 1,000-row NHANES 2009-2012 cut via primer.tutorials::smokes"
+  )
+```
+
+Smoking rates vary substantially across age and sex, making demographic targeting a critical tool for anti-smoking campaigns. Using a 1,000-adult sample drawn from the 2009–2012 NHANES waves, available in the smokes tibble of the primer.tutorials package, we estimate the difference in the probability of being an ever-smoker between a 30-year-old woman and a 70-year-old man.
