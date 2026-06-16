@@ -12,6 +12,7 @@ library(tidyverse)
 library(primer.tutorials)
 library(tidymodels)
 library(broom)
+library(gt)
 ```
 
 ```{r}
@@ -34,11 +35,8 @@ smokes |>
   )
 ```
 
-Smoking rates vary substantially across age and sex, making demographic targeting a critical tool for anti-smoking campaigns. Using a 1,000-adult sample drawn from the 2009–2012 NHANES waves, available in the smokes tibble of the primer.tutorials package, we estimate the difference in the probability of being an ever-smoker between a 30-year-old woman and a 70-year-old man. However, the 13–17 year gap between our 2009–2012 NHANES data and the 2026 target population means the relationship between age, sex, and smoking status may have shifted, particularly among younger cohorts who came of age during the rise of e-cigarettes, making our estimates potentially outdated.
+Smoking rates vary substantially across age and sex, making demographic targeting a critical tool for anti-smoking campaigns. Using a 1,000-adult sample drawn from the 2009–2012 NHANES waves, available in the smokes tibble of the primer.tutorials package, we estimate the difference in the probability of being an ever-smoker between a 30-year-old woman and a 70-year-old man. However, the 13–17 year gap between our 2009–2012 NHANES data and the 2026 target population means the relationship between age, sex, and smoking status may have shifted, particularly among younger cohorts who came of age during the rise of e-cigarettes, making our estimates potentially outdated. We model the probability of being an ever-smoker using logistic regression, treating smoke as a binary outcome that is a function of age and sex.
 
-```{r}
-logistic_reg(engine = "glm") |> fit(smoke ~ age + sex, data = smokes)
-```
 
 ```{r}
 #| cache: true
@@ -46,9 +44,15 @@ fit_smokes <- logistic_reg(engine = "glm") |> fit(smoke ~ age + sex, data = smok
 ```
 
 ```{r}
-library(easystats)
-check_predictions(extract_fit_engine(fit_smokes))
+tidy(fit_smokes, conf.int = TRUE) |>
+  select(term, estimate, conf.low, conf.high) |>
+  mutate(across(c(estimate, conf.low, conf.high), \(x) round(x, 3))) |>
+  gt() |>
+  tab_header(title = "Estimates and 95% Confidence Intervals for Parameters",
+             subtitle = "Source: 1,000-row NHANES 2009-2012 cut via primer.tutorials::smokes")
 ```
+
+
 
 
 
